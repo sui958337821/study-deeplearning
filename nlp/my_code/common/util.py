@@ -16,6 +16,29 @@ def preprocess(text):
 
     return corpus, word_to_id, id_to_word
 
+def create_contexts_target(corpus, window_size):
+    targets = corpus[window_size:-window_size]
+    contexts = []
+
+    if window_size < 1:
+        print("====error:[window_size<1]====")
+        return
+
+    for i in range(window_size, len(corpus)-window_size):
+        cs = []
+        for t in range(i-window_size, i+window_size+1):
+            if t == i:
+                continue
+            cs.append(corpus[t])
+        contexts.append(cs)
+
+    return np.array(contexts), np.array(targets)
+
+def convert_one_hot(id, dim):
+    arr = np.zeros(dim)
+    arr[id] = 1
+    return arr
+
 def create_co_matrix(corpus, vocab_size, window_size=1):
     """
     Args:
@@ -70,3 +93,23 @@ def most_similar(query, word_to_id, id_to_word, word_matrix, top=5):
     count += 1
     if count>=top:
         return
+
+def ppmi(C, verbos=False, eps=1e-8):
+    M = np.zeros_like(C, d_type = np.float32)
+    N = np.sum(C)
+    S = np.sum(C, axis=0)
+    total = C.shape[0] * C.shape[1]
+
+    cnt = 0
+
+    for i in range(C.shape[0]):
+        for j in range(C.shape[1]):
+            pmi = np.log2(C[i, j] * N / S[j] * S[i] + eps)
+            M[i,j] = max(0, pmi)
+
+            if verbos == True:
+                cnt += 1
+                if cnt % (total//100+1) == 0:
+                    print('%.1f%% done' % (100 * cnt/total))
+
+    return M
